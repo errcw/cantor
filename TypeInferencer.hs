@@ -48,7 +48,7 @@ generalize :: TypeEnv -> Type -> TypeScheme
 generalize env t = Scheme vars t
     where vars = Set.toList ((ftv t) `Set.difference` (ftv env))
 
-instantiate :: TypeScheme -> TI Type
+instantiate :: TypeScheme -> TypeInfM Type
 instantiate (Scheme vars t) = do
     nvars <- mapM (\_ -> freshVar) vars
     let s = Map.fromList (zip vars nvars)
@@ -63,7 +63,7 @@ replaceVar env id t = TypeEnv (env' `Map.union` r)
     where TypeEnv env' = remove env id
           r = Map.singleton id (Scheme [] t)
 
-freshVar :: TI Type
+freshVar :: TypeInfM Type
 freshVar = do
     s <- get
     put s{tiSupply = tiSupply s + 1}
@@ -71,10 +71,10 @@ freshVar = do
 
 -- Type states
 data TIState = TIState { tiSupply :: Int }
-type TI a = StateT TIState ThrowsError a
+type TypeInfM a = StateT TIState ThrowsError a
 
-runTI :: TI a -> ThrowsError a
-runTI t = do (res, _) <- runStateT t TIState{ tiSupply=0 }
+runTypeInfM :: TypeInfM a -> ThrowsError a
+runTypeInfM t = do (res, _) <- runStateT t TIState{ tiSupply=0 }
              return res
 
 -- Type inference (Algorithm M)
@@ -92,7 +92,7 @@ varBind u t
     | u `Set.member` ftv t = throwError $ TypeOccurs (TVar u) t
     | otherwise            = return $ Map.singleton u t
 
-ti :: TypeEnv -> Type -> Expr -> TI Subst
+ti :: TypeEnv -> Type -> Expr -> TypeInfM Subst
 ti _ cons (Number _) = mgu TNumber cons
 ti _ cons (Boolean _) = mgu TBoolean cons
 ti (TypeEnv env) cons (Id id) =
@@ -123,12 +123,12 @@ ti env cons (Let id e1 e2) = do
 ti env cons (Fix id expr) = do
     ti (replaceVar env id cons) cons expr
 
-inferType :: TypeEnv -> Expr -> TI Type
+inferType :: TypeEnv -> Expr -> TypeInfM Type
 inferType env expr = do
     v <- freshVar
     s <- ti env v expr
     return (apply s v)
 
 inftype :: TypeEnv -> Expr -> ThrowsError Type
-inftype env expr = runTI (inferType env expr)
+inftype env expr = runTypeInfM (inferType env expr)
 
