@@ -1,8 +1,9 @@
 module Main where 
 
 import Monad
+import System.Environment
 import System.IO
-import System.Console.Haskeline
+import System.Console.Haskeline hiding (catch)
 
 import Cantor
 import Parser
@@ -10,10 +11,21 @@ import TypeInferencer
 import Evaluator
 import Library
 
-main = repl
+main :: IO ()
+main = do
+    args <- getArgs
+    case length args of
+        0 -> repl
+        1 -> repfile (args !! 0)
+        otherwise -> putStrLn "Usage: Cantor [filename]"
 
 repl :: IO ()
 repl = until_ (== "quit") readExpr evalPrintExpr
+
+repfile :: String -> IO ()
+repfile name = do
+    contents <- readFile name
+    evalPrintExpr contents
 
 readExpr :: IO String
 readExpr = do

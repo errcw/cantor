@@ -1,0 +1,7 @@
+syntax: regexp
+
+# Ignore the following endings
+~$
+\.swp$
+\.pyc$
+
