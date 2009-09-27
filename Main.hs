@@ -2,7 +2,7 @@ module Main where
 
 import Monad
 import System.IO
-import System.Console.Readline (readline)
+import System.Console.Haskeline
 
 import Cantor
 import Parser
@@ -41,7 +41,9 @@ until_ pred prompt action = do
         else action result >> until_ pred prompt action
 
 readLine :: IO String
-readLine = do ln <- readline ""
-              case ln of
-                  Nothing -> return ""
-                  Just line -> return line
+readLine = runInputT defaultSettings rd
+    where rd = do ln <- getInputLine ""
+                  case ln of
+                      Nothing -> return ""
+                      Just line -> return line
+

@@ -75,7 +75,7 @@ type TypeInfM a = StateT TIState ThrowsError a
 
 runTypeInfM :: TypeInfM a -> ThrowsError a
 runTypeInfM t = do (res, _) <- runStateT t TIState{ tiSupply=0 }
-             return res
+                   return res
 
 -- Type inference (Algorithm M)
 mgu TNumber TNumber = return nullSubst
